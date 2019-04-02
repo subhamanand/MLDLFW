@@ -14,13 +14,14 @@ import predictions_1
 from sklearn.externals import joblib
 import csv
 
+#Starting of the Flask App
+
 app = Flask(__name__) 
 CORS(app) 
-#api = Api(app, version='1.0', title='APIs for Python Functions', validate=False) ns = api.namespace('primality', 'Returns a list of all primes below a given upper bound')
 
-#@app.route('/')
-#def home():
-#	return render_template('login.html')
+
+# Api getHeaders : Gets the header values of all the columns of the training .csv files and sends back to the website for the user to select the relevant headers from them. 
+
 @app.route("/api/ml/getHeaders", methods = ['POST'])
 def getHeaders():
 	fileName = request.get_json()['fileName']
@@ -32,20 +33,15 @@ def getHeaders():
 	# return response_string
 	return jsonify(status=1,results= list(dataset))
 
+
+# Api train : Finds out the best algorithm to train a particular model and then trains the model using that api. The model is stored in a .pkl file.
+
 @app.route('/train', methods=['POST'])
 def train():
 	content = request.get_json();
 	fileName = content['fileName']
 	target = content['target']
 	algo_type = content['type']
-	#preference = content['preference']
-	#dateformat = content['dateformat']
-	#datecolumn = content['datecolumn']
-	#s3 = boto3.client('s3',aws_access_key_id='yyyyyyyy',aws_secret_access_key='xxxxxxxxxxx')
-	#Call S3 to list current buckets
-	#response = s3.list_buckets()
-	#for bucket in response['Buckets']:
-	#	print bucket['Name']
 	data = pd.read_csv("./trainingFiles/"+fileName)
 	if algo_type == 'restaurant sales':
 		burgercol,burgermodel,milkshakemodel,mape = sel1.restaurant_ml(data,target)
@@ -53,8 +49,6 @@ def train():
 		return rest_json
 	if algo_type=='regression':
 		model,useful_var,input_var,mape = sel.regression_selection(data,target)
-		#useful_var,input_var,model,mape = algo.regression(data,target,model)
-		#session['model'] = model
 		session['useful'] = useful_var
 		session['input'] = input_var
 		json_useful_var = json.dumps(useful_var)
@@ -75,6 +69,9 @@ def train():
 		out_json = '{"statusCode":"200","modelName":"'+model+'","trainingAccuracy":"'+str(mape)+'","usefulVar":"'+json_useful_var+'","inputVar":"'+json_input_var+'"}'
 		#joblib.dump(model,'model.pkl')
 		return Response(out_json,status=200)
+
+
+# Api predict : The model stored in the .pkl file is retrieved and used to pedict the output of a new .csv file provided and appended to the file as a new column.
 
 @app.route('/predict', methods=['POST'])
 def predict():
